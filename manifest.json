@@ -1,0 +1,9 @@
+{
+    "display_name": "Smart Context Compressor",
+    "loading_order": 50,
+    "version": "1.0.0",
+    "author": "ST Context Team",
+    "js": "index.js",
+    "css": "style.css",
+    "generate_interceptor": "stContextCompressorInterceptor"
+}
