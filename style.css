@@ -1156,7 +1156,15 @@
         opacity: 1;
     }
 
-    /* 2. 移动端展开面板化身为优雅的【底部抽屉 (Bottom Sheet)】 */
+    /* 移动端展开抽屉时，浮球丝滑渐隐，绝不遮挡抽屉下边缘或与内容重叠 */
+    #st-compressor-floating-wrapper.open-drawer .st-floating-ball {
+        opacity: 0 !important;
+        transform: scale(0.6) !important;
+        pointer-events: none !important;
+        transition: opacity 0.25s ease, transform 0.25s ease !important;
+    }
+
+    /* 1. 移动端展开面板化身为优雅的【底部抽屉 (Bottom Sheet)】 */
     .st-floating-card {
         position: fixed !important;
         left: 0 !important;
@@ -1166,23 +1174,27 @@
         width: 100vw !important;
         max-width: 100vw !important;
         border-radius: 24px 24px 0 0 !important;
-        padding-bottom: env(safe-area-inset-bottom, 12px);
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25) !important;
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+        box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.28) !important;
         transform: translateY(100%) !important;
         transform-origin: bottom center !important;
         transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.32s ease !important;
         opacity: 0 !important;
         z-index: 999999 !important;
+        display: none;
     }
 
     .st-floating-card.open {
+        display: flex !important;
         transform: translateY(0) !important;
+        top: calc(100vh - 443px) !important;
+        bottom: auto !important;
         opacity: 1 !important;
     }
 
     /* 顶栏优化：加宽触控与抽屉拉手视觉条 */
     .st-card-header {
-        padding: 14px 20px 10px 20px !important;
+        padding: 16px 20px 12px 20px !important;
         border-top-left-radius: 24px !important;
         border-top-right-radius: 24px !important;
         position: relative;
@@ -1194,7 +1206,7 @@
         top: 6px;
         left: 50%;
         transform: translateX(-50%);
-        width: 36px;
+        width: 40px;
         height: 4px;
         background: #cbd5e1;
         border-radius: 2px;
@@ -1202,7 +1214,7 @@
 
     .st-card-body {
         padding: 12px 18px 16px 18px !important;
-        max-height: 75vh !important;
+        max-height: 72vh !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch;
     }
@@ -1218,28 +1230,42 @@
         padding: 6px 10px !important;
     }
 
-    /* 3. 大管理弹窗手机端适配：全屏自适应与纵向堆叠 */
-    .st-compressor-large-modal {
-        width: 100vw !important;
-        max-width: 100vw !important;
-        height: 94vh !important;
-        max-height: 94vh !important;
-        border-radius: 20px 20px 0 0 !important;
-        position: fixed !important;
-        bottom: 0 !important;
+    /* 2. 大管理弹窗移动端沉浸页适配：居中安全视口展开，头部绝对不被截断 */
+    .st-modal-overlay {
+        padding: env(safe-area-inset-top, 16px) 12px calc(env(safe-area-inset-bottom, 0px) + 16px) 12px !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
-    .st-modal-overlay {
-        align-items: flex-end !important;
+    .st-compressor-large-modal {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 88vh !important;
+        max-height: 88vh !important;
+        border-radius: 20px !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        margin: auto !important;
     }
 
     .st-large-modal-header {
         padding: 14px 18px !important;
+        flex-shrink: 0 !important;
     }
 
     .st-modal-tabs {
-        padding: 8px 16px !important;
+        padding: 6px 14px !important;
+        flex-shrink: 0 !important;
         overflow-x: auto;
+    }
+
+    .st-large-modal-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 14px 16px !important;
+        -webkit-overflow-scrolling: touch;
     }
 
     /* 彻底解决两栏挤压：手机端改为单列纵向排列 */
@@ -1250,14 +1276,17 @@
     }
 
     .st-modal-textarea {
-        min-height: 180px !important;
-        font-size: 13.5px !important; /* 手机端字号防自动缩放 */
+        min-height: 160px !important;
+        font-size: 13.5px !important; /* 手机端字号防浏览器自动放大 */
     }
 
     .st-large-modal-footer {
         padding: 12px 18px !important;
+        flex-shrink: 0 !important;
         flex-direction: column !important;
         gap: 10px !important;
+        background: #ffffff !important;
+        border-top: 1px solid #f1f5f9 !important;
     }
 
     .st-footer-actions {

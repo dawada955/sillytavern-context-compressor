@@ -55,8 +55,8 @@ export const CompressorUI = {
         <!-- 移动端背景半透明遮罩 -->
         <div id="st-mobile-drawer-backdrop" class="st-mobile-backdrop"></div>
 
+        <!-- 纯白智能悬浮球与卡片容器 -->
         <div id="st-compressor-floating-wrapper" class="snapped-right">
-            <!-- 纯白智能悬浮球 -->
             <div id="st-compressor-ball" class="st-floating-ball">
                 <div class="st-ball-core">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -68,205 +68,206 @@ export const CompressorUI = {
                 </div>
                 <div id="st-ball-pulse" class="st-ball-halo"></div>
             </div>
+        </div>
 
-            <!-- 白色轻拟物展开面板 (展开时固定浮球，禁止拖拽) -->
-            <div id="st-compressor-card" class="st-floating-card pos-top-left">
-                <div class="st-card-header">
-                    <div class="st-header-title">
-                        <div class="st-indicator-dot" id="st-status-dot"></div>
-                        <span class="st-title-text">上下文压缩</span>
-                    </div>
-                    <div class="st-header-ctrls">
-                        <span id="st-status-badge" class="st-status-tag">就绪</span>
-                        <button id="st-card-close-btn" class="st-close-icon">✕</button>
-                    </div>
+        <!-- 白色轻拟物展开面板 (独立顶层结构，移动端可直接贴合视口成为底部抽屉，决不被浮球 transform 偏移) -->
+        <div id="st-compressor-card" class="st-floating-card pos-top-left">
+            <div class="st-card-header">
+                <div class="st-header-title">
+                    <div class="st-indicator-dot" id="st-status-dot"></div>
+                    <span class="st-title-text">上下文压缩</span>
                 </div>
-
-                <div class="st-card-body">
-                    <!-- 中心球形压缩按键与其外环指示轨道 -->
-                    <div class="st-giant-dial-container">
-                        <div class="st-dial-ring-wrapper">
-                            <!-- SVG 环形进度/保留轮数指示轨道 (直径从160放大到180，半径80) -->
-                            <svg class="st-dial-svg" viewBox="0 0 180 180">
-                                <circle class="st-dial-bg-track" cx="90" cy="90" r="80"></circle>
-                                <circle id="st-dial-progress-arc" class="st-dial-progress" cx="90" cy="90" r="80"
-                                    stroke-dasharray="502.65" stroke-dashoffset="200"></circle>
-                            </svg>
-
-                            <!-- 中心球形压缩按键（纵向纯粹布局：图标在正上方居中，Tokens数值在正中，进度条在正下方） -->
-                            <div class="st-giant-orb-btn" id="st_btn_giant_compress">
-                                <div class="st-orb-glow"></div>
-                                <div class="st-orb-content">
-                                    <div class="st-orb-icon-btn" id="st_btn_toggle_mode">
-                                        <span id="st-mode-icon">
-                                            ${(settings.compressMode === 'full') ?
-                                                `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>` :
-                                                `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
-                                            }
-                                        </span>
-                                    </div>
-                                    <div class="st-orb-main-metric">
-                                        <span id="st-orb-tokens-val" class="st-orb-tokens">0</span>
-                                        <span class="st-orb-unit">Tokens</span>
-                                    </div>
-                                    <div class="st-orb-sub">压缩进度: #<span id="st-orb-floor-val">0</span> 条</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 环绕交互状态显示 -->
-                        <div class="st-dial-control-row">
-                            <span class="st-dial-label">保留活跃轮数: <strong id="st_compressor_keep_rounds_val" class="text-primary">${settings.keepRounds} 轮</strong></span>
-                            <span class="st-dial-sub-label">待压缩: <strong id="st_stat_uncompressed_rounds">0</strong> 轮</span>
-                        </div>
-                    </div>
-
-                    <!-- 紧凑圆形图标栏位组 (Circular Icon Dock) -->
-                    <div class="st-dock-group-container">
-                        <div class="st-dock-icons-row">
-                            <!-- 1. 保留轮数微调 (点击弹出拖动条) -->
-                            <div class="st-dock-item-wrapper" id="st_dock_item_keep_rounds">
-                                <button type="button" class="st-dock-btn" id="st_dock_btn_keep_rounds">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                    <span class="st-dock-badge" id="st_dock_keep_rounds_badge">${settings.keepRounds}</span>
-                                </button>
-                                <span class="st-dock-label">保留轮数</span>
-                            </div>
-
-                            <!-- 2. 拦截截断 (点击切换开关) -->
-                            <div class="st-dock-item-wrapper" id="st_dock_item_enabled">
-                                <button type="button" class="st-dock-btn ${settings.enabled ? 'active' : ''}" id="st_dock_btn_enabled">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                    </svg>
-                                </button>
-                                <span class="st-dock-label">拦截截断</span>
-                            </div>
-
-                            <!-- 3. 自动压缩 (点击切换开关，双击或长按/展开调整阈值) -->
-                            <div class="st-dock-item-wrapper" id="st_dock_item_auto">
-                                <button type="button" class="st-dock-btn ${settings.autoTrigger ? 'active' : ''}" id="st_dock_btn_auto">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                                    </svg>
-                                </button>
-                                <span class="st-dock-label">自动压缩</span>
-                            </div>
-
-                            <!-- 4. 打开窗口 (点击打开大配置弹窗) -->
-                            <div class="st-dock-item-wrapper" id="st_dock_item_modal">
-                                <button type="button" class="st-dock-btn" id="st_dock_btn_modal">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                        <polyline points="15 3 21 3 21 9"></polyline>
-                                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                                    </svg>
-                                </button>
-                                <span class="st-dock-label">打开窗口</span>
-                            </div>
-                        </div>
-
-                        <!-- 容器内滑块调节区（安全内嵌在卡片中，永不被卡片边框遮挡或裁切） -->
-                        <div class="st-dock-inline-slider-panel" id="st_panel_keep_rounds" style="display: none;">
-                            <div class="st-popover-header">
-                                <span>保留轮数调节</span>
-                                <strong id="st_popover_keep_val" class="text-primary">${settings.keepRounds} 轮</strong>
-                            </div>
-                            <input type="range" id="st_compressor_keep_rounds" min="3" max="30" step="1" value="${settings.keepRounds}" />
-                        </div>
-
-                        <div class="st-dock-inline-slider-panel" id="st_panel_auto_interval" style="display: none;">
-                            <div class="st-popover-header">
-                                <span>自动压缩阈值</span>
-                                <strong id="st_popover_interval_val" class="text-primary">${settings.autoTriggerInterval} 轮</strong>
-                            </div>
-                            <input type="range" id="st_compressor_interval" min="5" max="30" step="1" value="${settings.autoTriggerInterval}" />
-                        </div>
-                    </div>
+                <div class="st-header-ctrls">
+                    <span id="st-status-badge" class="st-status-tag">就绪</span>
+                    <button id="st-card-close-btn" class="st-close-icon">✕</button>
                 </div>
             </div>
 
-            <!-- 紧凑大弹窗：展示压缩成果与配置 -->
-            <div id="st-compressor-modal-overlay" class="st-modal-overlay">
-                <div class="st-compressor-large-modal">
-                    <div class="st-large-modal-header">
-                        <div class="st-large-header-left">
-                            <div class="st-modal-icon-badge">
+            <div class="st-card-body">
+                <!-- 中心球形压缩按键与其外环指示轨道 -->
+                <div class="st-giant-dial-container">
+                    <div class="st-dial-ring-wrapper">
+                        <!-- SVG 环形进度/保留轮数指示轨道 (直径从160放大到180，半径80) -->
+                        <svg class="st-dial-svg" viewBox="0 0 180 180">
+                            <circle class="st-dial-bg-track" cx="90" cy="90" r="80"></circle>
+                            <circle id="st-dial-progress-arc" class="st-dial-progress" cx="90" cy="90" r="80"
+                                stroke-dasharray="502.65" stroke-dashoffset="200"></circle>
+                        </svg>
+
+                        <!-- 中心球形压缩按键（纵向纯粹布局：图标在正上方居中，Tokens数值在正中，进度条在正下方） -->
+                        <div class="st-giant-orb-btn" id="st_btn_giant_compress">
+                            <div class="st-orb-glow"></div>
+                            <div class="st-orb-content">
+                                <div class="st-orb-icon-btn" id="st_btn_toggle_mode">
+                                    <span id="st-mode-icon">
+                                        ${(settings.compressMode === 'full') ?
+                                            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>` :
+                                            `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
+                                        }
+                                    </span>
+                                </div>
+                                <div class="st-orb-main-metric">
+                                    <span id="st-orb-tokens-val" class="st-orb-tokens">0</span>
+                                    <span class="st-orb-unit">Tokens</span>
+                                </div>
+                                <div class="st-orb-sub">压缩进度: #<span id="st-orb-floor-val">0</span> 条</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 环绕交互状态显示 -->
+                    <div class="st-dial-control-row">
+                        <span class="st-dial-label">保留活跃轮数: <strong id="st_compressor_keep_rounds_val" class="text-primary">${settings.keepRounds} 轮</strong></span>
+                        <span class="st-dial-sub-label">待压缩: <strong id="st_stat_uncompressed_rounds">0</strong> 轮</span>
+                    </div>
+                </div>
+
+                <!-- 紧凑圆形图标栏位组 (Circular Icon Dock) -->
+                <div class="st-dock-group-container">
+                    <div class="st-dock-icons-row">
+                        <!-- 1. 保留轮数微调 (点击弹出拖动条) -->
+                        <div class="st-dock-item-wrapper" id="st_dock_item_keep_rounds">
+                            <button type="button" class="st-dock-btn" id="st_dock_btn_keep_rounds">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                    <polyline points="2 17 12 22 22 17"></polyline>
-                                    <polyline points="2 12 12 17 22 12"></polyline>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                            </div>
-                            <div>
-                                <h3 class="st-modal-main-title">压缩管理</h3>
-                            </div>
-                        </div>
-                        <button id="st_btn_close_large_modal" class="st-modal-close-icon">✕</button>
-                    </div>
-
-                    <!-- 选项卡切换 -->
-                    <div class="st-modal-tabs">
-                        <button class="st-modal-tab-btn active" data-tab="result">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            提炼产物
-                        </button>
-                        <button class="st-modal-tab-btn" data-tab="prompt">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                            提示词
-                        </button>
-                    </div>
-
-                    <div class="st-large-modal-body">
-                        <!-- Tab 1: 压缩结果展示与在线校准 -->
-                        <div id="st-tab-content-result" class="st-tab-pane active">
-                            <div class="st-result-columns">
-                                <div class="st-result-box">
-                                    <div class="st-box-header">
-                                        <span class="st-box-tag tag-purple">角色状态</span>
-                                    </div>
-                                    <textarea id="st_modal_char_state" class="st-modal-textarea" rows="12" placeholder="暂无角色状态数据..."></textarea>
-                                </div>
-                                <div class="st-result-box">
-                                    <div class="st-box-header">
-                                        <span class="st-box-tag tag-blue">剧情提要</span>
-                                    </div>
-                                    <textarea id="st_modal_story_summary" class="st-modal-textarea" rows="12" placeholder="暂无剧情提要数据..."></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tab 2: 提示词模板编辑与重置 -->
-                        <div id="st-tab-content-prompt" class="st-tab-pane">
-                            <div class="st-prompt-box">
-                                <div class="st-prompt-header-row">
-                                    <div>
-                                        <span class="st-box-tag tag-green">系统提示词</span>
-                                    </div>
-                                    <button id="st_btn_modal_restore_prompt" class="st-btn-outline-danger">
-                                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-                                        恢复默认
-                                    </button>
-                                </div>
-                                <textarea id="st_modal_compress_prompt" class="st-modal-textarea font-mono" rows="14" placeholder="加载中..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="st-large-modal-footer">
-                        <div class="st-footer-status">
-                            <span>产物预估: </span><strong id="st-modal-status-tokens" class="text-primary">0 Tokens</strong>
-                        </div>
-                        <div class="st-footer-actions">
-                            <button id="st_btn_modal_cancel" class="st-modal-btn st-btn-cancel">取消</button>
-                            <button id="st_btn_modal_save_all" class="st-modal-btn st-btn-save">
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-                                保存
+                                <span class="st-dock-badge" id="st_dock_keep_rounds_badge">${settings.keepRounds}</span>
                             </button>
+                            <span class="st-dock-label">保留轮数</span>
                         </div>
+
+                        <!-- 2. 拦截截断 (点击切换开关) -->
+                        <div class="st-dock-item-wrapper" id="st_dock_item_enabled">
+                            <button type="button" class="st-dock-btn ${settings.enabled ? 'active' : ''}" id="st_dock_btn_enabled">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                            </button>
+                            <span class="st-dock-label">拦截截断</span>
+                        </div>
+
+                        <!-- 3. 自动压缩 (点击切换开关，双击或长按/展开调整阈值) -->
+                        <div class="st-dock-item-wrapper" id="st_dock_item_auto">
+                            <button type="button" class="st-dock-btn ${settings.autoTrigger ? 'active' : ''}" id="st_dock_btn_auto">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                </svg>
+                            </button>
+                            <span class="st-dock-label">自动压缩</span>
+                        </div>
+
+                        <!-- 4. 打开窗口 (点击打开大配置弹窗) -->
+                        <div class="st-dock-item-wrapper" id="st_dock_item_modal">
+                            <button type="button" class="st-dock-btn" id="st_dock_btn_modal">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </button>
+                            <span class="st-dock-label">打开窗口</span>
+                        </div>
+                    </div>
+
+                    <!-- 容器内滑块调节区（安全内嵌在卡片中，永不被卡片边框遮挡或裁切） -->
+                    <div class="st-dock-inline-slider-panel" id="st_panel_keep_rounds" style="display: none;">
+                        <div class="st-popover-header">
+                            <span>保留轮数调节</span>
+                            <strong id="st_popover_keep_val" class="text-primary">${settings.keepRounds} 轮</strong>
+                        </div>
+                        <input type="range" id="st_compressor_keep_rounds" min="3" max="30" step="1" value="${settings.keepRounds}" />
+                    </div>
+
+                    <div class="st-dock-inline-slider-panel" id="st_panel_auto_interval" style="display: none;">
+                        <div class="st-popover-header">
+                            <span>自动压缩阈值</span>
+                            <strong id="st_popover_interval_val" class="text-primary">${settings.autoTriggerInterval} 轮</strong>
+                        </div>
+                        <input type="range" id="st_compressor_interval" min="5" max="30" step="1" value="${settings.autoTriggerInterval}" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- 独立顶层全景大弹窗：与浮球绝对平级，彻底消除父级 transform 对 position:fixed 的致命物理扭曲 -->
+        <div id="st-compressor-modal-overlay" class="st-modal-overlay">
+            <div class="st-compressor-large-modal">
+                <div class="st-large-modal-header">
+                    <div class="st-large-header-left">
+                        <div class="st-modal-icon-badge">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                <polyline points="2 17 12 22 22 17"></polyline>
+                                <polyline points="2 12 12 17 22 12"></polyline>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="st-modal-main-title">压缩管理</h3>
+                        </div>
+                    </div>
+                    <button id="st_btn_close_large_modal" class="st-modal-close-icon">✕</button>
+                </div>
+
+                <!-- 选项卡切换 -->
+                <div class="st-modal-tabs">
+                    <button class="st-modal-tab-btn active" data-tab="result">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        提炼产物
+                    </button>
+                    <button class="st-modal-tab-btn" data-tab="prompt">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        提示词
+                    </button>
+                </div>
+
+                <div class="st-large-modal-body">
+                    <!-- Tab 1: 压缩结果展示与在线校准 -->
+                    <div id="st-tab-content-result" class="st-tab-pane active">
+                        <div class="st-result-columns">
+                            <div class="st-result-box">
+                                <div class="st-box-header">
+                                    <span class="st-box-tag tag-purple">角色状态</span>
+                                </div>
+                                <textarea id="st_modal_char_state" class="st-modal-textarea" rows="12" placeholder="暂无角色状态数据..."></textarea>
+                            </div>
+                            <div class="st-result-box">
+                                <div class="st-box-header">
+                                    <span class="st-box-tag tag-blue">剧情提要</span>
+                                </div>
+                                <textarea id="st_modal_story_summary" class="st-modal-textarea" rows="12" placeholder="暂无剧情提要数据..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: 提示词模板编辑与重置 -->
+                    <div id="st-tab-content-prompt" class="st-tab-pane">
+                        <div class="st-prompt-box">
+                            <div class="st-prompt-header-row">
+                                <div>
+                                    <span class="st-box-tag tag-green">系统提示词</span>
+                                </div>
+                                <button id="st_btn_modal_restore_prompt" class="st-btn-outline-danger">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                                    恢复默认
+                                </button>
+                            </div>
+                            <textarea id="st_modal_compress_prompt" class="st-modal-textarea font-mono" rows="14" placeholder="加载中..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="st-large-modal-footer">
+                    <div class="st-footer-status">
+                        <span>产物预估: </span><strong id="st-modal-status-tokens" class="text-primary">0 Tokens</strong>
+                    </div>
+                    <div class="st-footer-actions">
+                        <button id="st_btn_modal_cancel" class="st-modal-btn st-btn-cancel">取消</button>
+                        <button id="st_btn_modal_save_all" class="st-modal-btn st-btn-save">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                            保存
+                        </button>
                     </div>
                 </div>
             </div>
@@ -275,6 +276,7 @@ export const CompressorUI = {
 
         // 统一直接挂载到 html 根节点，彻底脱离 body 的 transform 变换与负向裁剪影响
         const rootContainer = document.documentElement || document.body;
+        $('#st-compressor-floating-wrapper, #st-compressor-modal-overlay, #st-mobile-drawer-backdrop').remove();
         $(rootContainer).append(html);
         this.updateDialArc(settings.keepRounds);
 
@@ -534,12 +536,23 @@ export const CompressorUI = {
     },
 
     /**
-     * 智能计算展开方向，防止任何边界遮挡
+     * 智能计算展开方向与桌面端卡片绝对定位
      */
     adjustCardOrientation() {
         const ball = $('#st-compressor-ball');
         const card = $('#st-compressor-card');
         if (!ball.length || !card.length) return;
+
+        // 移动端宽度（<=640px）下，由 CSS 的 @media 统一将其转化为 100vw 的优雅底部抽屉，无需计算桌面端偏移
+        if (window.innerWidth <= 640) {
+            card.css({
+                top: '',
+                left: '',
+                right: '',
+                bottom: ''
+            });
+            return;
+        }
 
         const ballRect = ball[0].getBoundingClientRect();
         const cardWidth = 320;
@@ -549,16 +562,34 @@ export const CompressorUI = {
         const hasTopSpace = ballRect.top >= cardHeight;
         const hasBottomSpace = (window.innerHeight - ballRect.bottom) >= cardHeight;
 
-        let orientationClass = 'pos-top-left';
+        let leftPos = 0;
+        let topPos = 0;
 
-        if (!hasTopSpace && hasBottomSpace) {
-            orientationClass = hasLeftSpace ? 'pos-bottom-left' : 'pos-bottom-right';
+        // 水平定位
+        if (hasLeftSpace) {
+            leftPos = ballRect.right - cardWidth;
         } else {
-            orientationClass = hasLeftSpace ? 'pos-top-left' : 'pos-top-right';
+            leftPos = ballRect.left;
         }
 
-        card.removeClass('pos-top-left pos-top-right pos-bottom-left pos-bottom-right')
-            .addClass(orientationClass);
+        // 垂直定位
+        if (!hasTopSpace && hasBottomSpace) {
+            topPos = ballRect.bottom + 10;
+        } else {
+            topPos = ballRect.top - cardHeight - 10;
+        }
+
+        // 约束在屏幕安全边界内
+        leftPos = Math.max(12, Math.min(window.innerWidth - cardWidth - 12, leftPos));
+        topPos = Math.max(12, Math.min(window.innerHeight - cardHeight - 12, topPos));
+
+        card.css({
+            position: 'fixed',
+            left: `${leftPos}px`,
+            top: `${topPos}px`,
+            right: 'auto',
+            bottom: 'auto'
+        });
     },
 
     /**
@@ -697,13 +728,13 @@ export const CompressorUI = {
             card.addClass('open');
             ball.addClass('active');
             backdrop.addClass('active');
-            wrapper.addClass('locked'); // 锁定悬浮球
+            wrapper.addClass('locked open-drawer'); // 锁定悬浮球并在抽屉展开时添加渐隐类
             this.renderSessionPreview();
         } else {
             card.removeClass('open');
             ball.removeClass('active');
             backdrop.removeClass('active');
-            wrapper.removeClass('locked'); // 解除锁定
+            wrapper.removeClass('locked open-drawer'); // 解除锁定并恢复浮球显示
         }
     },
 
