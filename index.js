@@ -206,6 +206,7 @@ function initExtension() {
     CompressorUI.initUI();
 
     const ctx = SillyTavern?.getContext ? SillyTavern.getContext() : null;
+    // 切换会话时刷新 UI 预览与指示，并在移动端 DOM 发生重排时确保浮球挂载保活
     if (ctx && ctx.eventSource && ctx.event_types) {
         const { eventSource, event_types } = ctx;
 
@@ -233,10 +234,21 @@ function initExtension() {
         if (event_types.CHAT_CHANGED) {
             eventSource.on(event_types.CHAT_CHANGED, () => {
                 ContextInjector.unmountMarker();
-                CompressorUI.renderSessionPreview();
+                if (!$('#st-compressor-floating-wrapper').length) {
+                    CompressorUI.initUI();
+                } else {
+                    CompressorUI.renderSessionPreview();
+                }
             });
         }
     }
+
+    // 针对移动端初始化异步挂载保活（防止 ST 移动端延迟重刷 body）
+    setTimeout(() => {
+        if (!$('#st-compressor-floating-wrapper').length) {
+            CompressorUI.initUI();
+        }
+    }, 1500);
 
     // 注册全局调试/外部调用接口
     window.stContextCompress = {

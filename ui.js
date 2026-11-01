@@ -9,12 +9,38 @@ import { ContextCompressor } from './compressor.js';
 export const CompressorUI = {
     _isOpen: false,
 
+    // 浮球全局状态（侧边锚定 + 垂直高度比例记忆）
+    _pos: { x: 0, y: 0 },
+    _side: 'right', // 'left' | 'right'，永久记忆吸附在哪一侧
+    _yRatio: 0.75,  // 垂直高度百分比 (0~1)，跨分辨率切换时完美维持居中/纵向相对位置
+
     /**
      * 初始化 UI 容器与悬浮球
      */
     initUI() {
         this.injectFloatingWidget();
         this.bindEvents();
+    },
+
+    /**
+     * 设置浮球位置 (纯 GPU translate3d，零瞬移，零排版抖动)
+     */
+    updatePosition(x, y, animate = false) {
+        const wrapper = $('#st-compressor-floating-wrapper');
+        if (!wrapper.length) return;
+
+        this._pos.x = x;
+        this._pos.y = y;
+
+        if (animate) {
+            wrapper.addClass('snapping');
+        } else {
+            wrapper.removeClass('snapping');
+        }
+
+        wrapper.css({
+            transform: `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`
+        });
     },
 
     /**
@@ -247,8 +273,23 @@ export const CompressorUI = {
         </div>
         `;
 
-        $('body').append(html);
+        // 统一直接挂载到 html 根节点，彻底脱离 body 的 transform 变换与负向裁剪影响
+        const rootContainer = document.documentElement || document.body;
+        $(rootContainer).append(html);
         this.updateDialArc(settings.keepRounds);
+
+        // 初始化时立即执行一次右侧吸附与边界校准，杜绝未拖动前坐标异常出界
+        this.snapToClosestEdge();
+
+        // 移动端安全保活：延迟确保移动端 DOM 重构完成后浮球依然稳固存在
+        setTimeout(() => {
+            const wrapper = $('#st-compressor-floating-wrapper');
+            if (!wrapper.length) {
+                $(document.documentElement || document.body).append(html);
+                this.bindEvents();
+            }
+            this.snapToClosestEdge();
+        }, 1000);
     },
 
     /**
@@ -286,8 +327,13 @@ export const CompressorUI = {
             this.togglePanel(false);
         });
 
-        // 3. 悬浮球自由拖拽定位（带侧边栏重力吸附 + 展开时固定禁用拖拽）
+        // 3. 悬浮球自由拖拽定位（GPU 硬件加速 translate3d + 两端丝滑吸附）
         this.makeDraggableWithSnap(ball[0]);
+
+        // 3.1 监听窗口缩放与安卓视口宽度突变，平滑贴合边缘
+        $(window).on('resize.stContextCompressor', () => {
+            self.snapToClosestEdge(false);
+        });
 
         // 4. 表单与圆形图标栏位组交互
         // 4.0 压缩球中心图标：常态切换模式 / 压缩中转换为中断中止
@@ -516,175 +562,123 @@ export const CompressorUI = {
     },
 
     /**
-     * 悬浮球拖拽逻辑：具备【侧边栏重力吸附 (Magnetic Snap)】与【展开固定锁 (Lock On Open)】
+     * 悬浮球拖拽逻辑：基于 GPU translate3d (无排版重绘，左右吸附纯数值插值，绝对平滑零瞬移)
      */
     makeDraggableWithSnap(elm) {
         const self = this;
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let startClientX = 0, startClientY = 0;
+        let startPosX = 0, startPosY = 0;
         let isDrag = false;
         let touchStartTime = 0;
-        let touchStartPos = { x: 0, y: 0 };
 
-        // 桌面端鼠标事件
-        elm.onmousedown = dragMouseDown;
+        // 桌面端鼠标拖拽
+        elm.onmousedown = (e) => {
+            if (e.button !== 0 || self._isOpen) return;
+            initDrag(e.clientX, e.clientY);
+            document.onmousemove = (me) => onMove(me.clientX, me.clientY);
+            document.onmouseup = () => endDrag();
+        };
 
-        // 移动端/触摸屏事件
-        elm.addEventListener('touchstart', onTouchStart, { passive: false });
-        elm.addEventListener('touchmove', onTouchMove, { passive: false });
-        elm.addEventListener('touchend', onTouchEnd, { passive: false });
-
-        function onTouchStart(e) {
+        // 移动端触摸拖拽
+        elm.addEventListener('touchstart', (e) => {
             if (self._isOpen) return;
             const touch = e.touches[0];
             touchStartTime = Date.now();
-            touchStartPos = { x: touch.clientX, y: touch.clientY };
-            pos3 = touch.clientX;
-            pos4 = touch.clientY;
-            isDrag = false;
-            $(elm).data('isDragging', false);
+            initDrag(touch.clientX, touch.clientY);
+        }, { passive: true });
 
-            const wrapper = $('#st-compressor-floating-wrapper');
-            wrapper.removeClass('snapping');
-        }
-
-        function onTouchMove(e) {
+        elm.addEventListener('touchmove', (e) => {
             if (self._isOpen) return;
             const touch = e.touches[0];
-            const deltaX = Math.abs(touch.clientX - touchStartPos.x);
-            const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+            const moved = onMove(touch.clientX, touch.clientY);
+            if (moved && e.cancelable) e.preventDefault();
+        }, { passive: false });
 
-            if (deltaX > 6 || deltaY > 6) {
-                isDrag = true;
-                $(elm).data('isDragging', true);
-                if (e.cancelable) e.preventDefault();
-            }
-
-            pos1 = pos3 - touch.clientX;
-            pos2 = pos4 - touch.clientY;
-            pos3 = touch.clientX;
-            pos4 = touch.clientY;
-
-            const wrapper = $('#st-compressor-floating-wrapper');
-            const newTop = wrapper[0].offsetTop - pos2;
-            const newLeft = wrapper[0].offsetLeft - pos1;
-
-            wrapper.css({
-                top: Math.max(12, Math.min(window.innerHeight - 60, newTop)) + 'px',
-                left: Math.max(12, Math.min(window.innerWidth - 60, newLeft)) + 'px',
-                right: 'auto',
-                bottom: 'auto'
-            });
-
-            self.adjustCardOrientation();
-        }
-
-        function onTouchEnd(e) {
+        elm.addEventListener('touchend', (e) => {
             const touchDuration = Date.now() - touchStartTime;
             if (isDrag) {
-                self.snapToClosestEdge();
+                endDrag();
             } else if (touchDuration < 300) {
-                // 触摸轻触展开事件 (Touch Tap to open/toggle)
+                // 轻触点击切换
                 if (e.cancelable) e.preventDefault();
                 self.togglePanel();
             }
+            setTimeout(() => { $(elm).data('isDragging', false); }, 100);
+        });
 
-            setTimeout(() => {
-                $(elm).data('isDragging', false);
-            }, 100);
-        }
-
-        function dragMouseDown(e) {
-            e = e || window.event;
-            if (e.button !== 0) return;
-
-            // 【关键点】：当展开卡片时，禁止拖动，锁死浮球位置
-            if (self._isOpen) {
-                return;
-            }
-
-            const wrapper = $('#st-compressor-floating-wrapper');
-            wrapper.removeClass('snapping'); // 拖动时移除平滑吸附类
-
-            pos3 = e.clientX;
-            pos4 = e.clientY;
+        function initDrag(clientX, clientY) {
+            startClientX = clientX;
+            startClientY = clientY;
+            startPosX = self._pos.x;
+            startPosY = self._pos.y;
             isDrag = false;
             $(elm).data('isDragging', false);
-
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
+            $('#st-compressor-floating-wrapper').removeClass('snapping');
         }
 
-        function elementDrag(e) {
-            e = e || window.event;
-            const deltaX = Math.abs(e.clientX - pos3);
-            const deltaY = Math.abs(e.clientY - pos4);
-
-            if (deltaX > 3 || deltaY > 3) {
+        function onMove(clientX, clientY) {
+            const dx = clientX - startClientX;
+            const dy = clientY - startClientY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
                 isDrag = true;
                 $(elm).data('isDragging', true);
             }
+            if (!isDrag) return false;
 
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-
-            const wrapper = $('#st-compressor-floating-wrapper');
-            const newTop = wrapper[0].offsetTop - pos2;
-            const newLeft = wrapper[0].offsetLeft - pos1;
-
-            wrapper.css({
-                top: Math.max(12, Math.min(window.innerHeight - 60, newTop)) + 'px',
-                left: Math.max(12, Math.min(window.innerWidth - 60, newLeft)) + 'px',
-                right: 'auto',
-                bottom: 'auto'
-            });
-
+            const nextX = Math.max(0, Math.min(window.innerWidth - 48, startPosX + dx));
+            const nextY = Math.max(12, Math.min(window.innerHeight - 60, startPosY + dy));
+            self.updatePosition(nextX, nextY, false);
             self.adjustCardOrientation();
+            return true;
         }
 
-        function closeDragElement() {
-            document.onmouseup = null;
+        function endDrag() {
             document.onmousemove = null;
-
-            // 触发【侧边重力吸附】
+            document.onmouseup = null;
             if (isDrag) {
-                self.snapToClosestEdge();
+                self.snapToClosestEdge(true, true); // 拖拽松手，重新计算侧位与纵向比例
             }
-
-            setTimeout(() => {
-                $(elm).data('isDragging', false);
-            }, 100);
+            setTimeout(() => { $(elm).data('isDragging', false); }, 100);
         }
     },
 
     /**
-     * 自动向左侧壁或右侧壁吸附
+     * 自动向左侧壁或右侧壁吸附 (基于侧边状态锚定与垂直相对高度比例)
+     * @param {boolean} animate - 是否播放平滑过渡动画
+     * @param {boolean} isUserDrop - 是否由用户拖拽松手触发 (如果是，则重新判定 left/right；若为 resize 则严格保持原有侧边)
      */
-    snapToClosestEdge() {
-        const wrapper = $('#st-compressor-floating-wrapper');
-        if (!wrapper.length) return;
-
-        const rect = wrapper[0].getBoundingClientRect();
+    snapToClosestEdge(animate = true, isUserDrop = false) {
         const screenWidth = window.innerWidth;
-        const middle = screenWidth / 2;
-        const ballCenter = rect.left + rect.width / 2;
+        const screenHeight = window.innerHeight;
+        const snapPadding = 16;
+        const ballSize = 48;
 
-        const snapPadding = 16; // 吸附边距
-        wrapper.addClass('snapping'); // 开启弹性吸附过渡动画
-
-        if (ballCenter >= middle) {
-            // 吸附到右边缘
-            wrapper.css({
-                left: (screenWidth - rect.width - snapPadding) + 'px'
-            }).removeClass('snapped-left').addClass('snapped-right');
-        } else {
-            // 吸附到左边缘
-            wrapper.css({
-                left: snapPadding + 'px'
-            }).removeClass('snapped-right').addClass('snapped-left');
+        // 1. 如果是用户手动拖拽松手，根据松手时的当前横坐标决定吸附左边还是右边
+        if (isUserDrop) {
+            const ballCenterX = this._pos.x + ballSize / 2;
+            this._side = (ballCenterX >= screenWidth / 2) ? 'right' : 'left';
+            // 记录当前的纵向百分比 (0~1)
+            this._yRatio = Math.max(0.05, Math.min(0.92, this._pos.y / screenHeight));
         }
 
+        // 2. 严格按侧边状态锚定横坐标：贴右就永远贴右，贴左就永远贴左，决不会跨越中线误判！
+        const targetX = (this._side === 'right')
+            ? (screenWidth - ballSize - snapPadding)
+            : snapPadding;
+
+        // 3. 纵向坐标基于垂直比例动态复原，确保屏幕旋转/安卓与PC切换时始终保持在同一高度视野
+        const calculatedY = screenHeight * this._yRatio;
+        const targetY = Math.max(12, Math.min(screenHeight - 60, calculatedY));
+
+        // 4. 更新样式标识类
+        const wrapper = $('#st-compressor-floating-wrapper');
+        if (this._side === 'right') {
+            wrapper.removeClass('snapped-left').addClass('snapped-right');
+        } else {
+            wrapper.removeClass('snapped-right').addClass('snapped-left');
+        }
+
+        this.updatePosition(targetX, targetY, animate);
         this.adjustCardOrientation();
     },
 
