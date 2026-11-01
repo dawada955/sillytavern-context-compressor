@@ -4,7 +4,9 @@
     position: fixed;
     right: 16px;
     bottom: 92px;
-    z-index: 999999;
+    z-index: 2147483647 !important;
+    display: flex !important;
+    visibility: visible !important;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     user-select: none;
     -webkit-font-smoothing: antialiased;
@@ -1151,8 +1153,11 @@
 
     /* 1. 悬浮球针对全面屏安全边距与防越界 */
     #st-compressor-floating-wrapper {
-        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-        right: 12px;
+        bottom: calc(110px + env(safe-area-inset-bottom, 0px)) !important;
+        right: 14px !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        visibility: visible !important;
     }
 
     /* 2. 核心：移动端展开面板化身为优雅的【底部抽屉 (Bottom Sheet)】 */
