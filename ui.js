@@ -74,8 +74,13 @@ export const CompressorUI = {
         <div id="st-compressor-card" class="st-floating-card pos-top-left">
             <div class="st-card-header">
                 <div class="st-header-title">
+                    <button type="button" id="st_btn_mobile_back_to_dock" class="st-mobile-back-btn" title="收起为底部栏">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
                     <div class="st-indicator-dot" id="st-status-dot"></div>
-                    <span class="st-title-text">上下文压缩</span>
+                    <span class="st-title-text" id="st_card_header_title">上下文压缩</span>
                 </div>
                 <div class="st-header-ctrls">
                     <span id="st-status-badge" class="st-status-tag">就绪</span>
@@ -84,111 +89,160 @@ export const CompressorUI = {
             </div>
 
             <div class="st-card-body">
-                <!-- 中心球形压缩按键与其外环指示轨道 -->
-                <div class="st-giant-dial-container">
-                    <div class="st-dial-ring-wrapper">
-                        <!-- SVG 环形进度/保留轮数指示轨道 (直径从160放大到180，半径80) -->
-                        <svg class="st-dial-svg" viewBox="0 0 180 180">
-                            <circle class="st-dial-bg-track" cx="90" cy="90" r="80"></circle>
-                            <circle id="st-dial-progress-arc" class="st-dial-progress" cx="90" cy="90" r="80"
-                                stroke-dasharray="502.65" stroke-dashoffset="200"></circle>
-                        </svg>
+                <!-- 阶段 1：默认简易控制面板内容（圆形仪表、快捷控制栏） -->
+                <div id="st-card-view-simple" class="st-card-view-pane active">
+                    <!-- 中心球形压缩按键与其外环指示轨道 -->
+                    <div class="st-giant-dial-container">
+                        <div class="st-dial-ring-wrapper">
+                            <!-- SVG 环形进度/保留轮数指示轨道 (直径从160放大到180，半径80) -->
+                            <svg class="st-dial-svg" viewBox="0 0 180 180">
+                                <circle class="st-dial-bg-track" cx="90" cy="90" r="80"></circle>
+                                <circle id="st-dial-progress-arc" class="st-dial-progress" cx="90" cy="90" r="80"
+                                    stroke-dasharray="502.65" stroke-dashoffset="200"></circle>
+                            </svg>
 
-                        <!-- 中心球形压缩按键（纵向纯粹布局：图标在正上方居中，Tokens数值在正中，进度条在正下方） -->
-                        <div class="st-giant-orb-btn" id="st_btn_giant_compress">
-                            <div class="st-orb-glow"></div>
-                            <div class="st-orb-content">
-                                <div class="st-orb-icon-btn" id="st_btn_toggle_mode">
-                                    <span id="st-mode-icon">
-                                        ${(settings.compressMode === 'full') ?
-                                            `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>` :
-                                            `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
-                                        }
-                                    </span>
+                            <!-- 中心球形压缩按键（纵向纯粹布局：图标在正上方居中，Tokens数值在正中，进度条在正下方） -->
+                            <div class="st-giant-orb-btn" id="st_btn_giant_compress">
+                                <div class="st-orb-glow"></div>
+                                <div class="st-orb-content">
+                                    <div class="st-orb-icon-btn" id="st_btn_toggle_mode">
+                                        <span id="st-mode-icon">
+                                            ${(settings.compressMode === 'full') ?
+                                                `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>` :
+                                                `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`
+                                            }
+                                        </span>
+                                    </div>
+                                    <div class="st-orb-main-metric">
+                                        <span id="st-orb-tokens-val" class="st-orb-tokens">0</span>
+                                        <span class="st-orb-unit">Tokens</span>
+                                    </div>
+                                    <div class="st-orb-sub">压缩进度: #<span id="st-orb-floor-val">0</span> 条</div>
                                 </div>
-                                <div class="st-orb-main-metric">
-                                    <span id="st-orb-tokens-val" class="st-orb-tokens">0</span>
-                                    <span class="st-orb-unit">Tokens</span>
-                                </div>
-                                <div class="st-orb-sub">压缩进度: #<span id="st-orb-floor-val">0</span> 条</div>
                             </div>
+                        </div>
+
+                        <!-- 环绕交互状态显示 -->
+                        <div class="st-dial-control-row">
+                            <span class="st-dial-label">保留活跃轮数: <strong id="st_compressor_keep_rounds_val" class="text-primary">${settings.keepRounds} 轮</strong></span>
+                            <span class="st-dial-sub-label">待压缩: <strong id="st_stat_uncompressed_rounds">0</strong> 轮</span>
                         </div>
                     </div>
 
-                    <!-- 环绕交互状态显示 -->
-                    <div class="st-dial-control-row">
-                        <span class="st-dial-label">保留活跃轮数: <strong id="st_compressor_keep_rounds_val" class="text-primary">${settings.keepRounds} 轮</strong></span>
-                        <span class="st-dial-sub-label">待压缩: <strong id="st_stat_uncompressed_rounds">0</strong> 轮</span>
+                    <!-- 紧凑圆形图标栏位组 (Circular Icon Dock) -->
+                    <div class="st-dock-group-container">
+                        <div class="st-dock-icons-row">
+                            <!-- 1. 保留轮数微调 (点击弹出拖动条) -->
+                            <div class="st-dock-item-wrapper" id="st_dock_item_keep_rounds">
+                                <button type="button" class="st-dock-btn" id="st_dock_btn_keep_rounds">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span class="st-dock-badge" id="st_dock_keep_rounds_badge">${settings.keepRounds}</span>
+                                </button>
+                                <span class="st-dock-label">保留轮数</span>
+                            </div>
+
+                            <!-- 2. 拦截截断 (点击切换开关) -->
+                            <div class="st-dock-item-wrapper" id="st_dock_item_enabled">
+                                <button type="button" class="st-dock-btn ${settings.enabled ? 'active' : ''}" id="st_dock_btn_enabled">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                </button>
+                                <span class="st-dock-label">拦截截断</span>
+                            </div>
+
+                            <!-- 3. 自动压缩 (点击切换开关，双击或长按/展开调整阈值) -->
+                            <div class="st-dock-item-wrapper" id="st_dock_item_auto">
+                                <button type="button" class="st-dock-btn ${settings.autoTrigger ? 'active' : ''}" id="st_dock_btn_auto">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                    </svg>
+                                </button>
+                                <span class="st-dock-label">自动压缩</span>
+                            </div>
+
+                            <!-- 4. 展开全屏窗口 (安卓端直接将抽屉展开成全屏，桌面端打开大弹窗) -->
+                            <div class="st-dock-item-wrapper" id="st_dock_item_modal">
+                                <button type="button" class="st-dock-btn" id="st_dock_btn_modal">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <polyline points="9 21 3 21 3 15"></polyline>
+                                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                                    </svg>
+                                </button>
+                                <span class="st-dock-label">展开窗口</span>
+                            </div>
+                        </div>
+
+                        <!-- 容器内滑块调节区（安全内嵌在卡片中，永不被卡片边框遮挡或裁切） -->
+                        <div class="st-dock-inline-slider-panel" id="st_panel_keep_rounds" style="display: none;">
+                            <div class="st-popover-header">
+                                <span>保留轮数调节</span>
+                                <strong id="st_popover_keep_val" class="text-primary">${settings.keepRounds} 轮</strong>
+                            </div>
+                            <input type="range" id="st_compressor_keep_rounds" min="3" max="30" step="1" value="${settings.keepRounds}" />
+                        </div>
+
+                        <div class="st-dock-inline-slider-panel" id="st_panel_auto_interval" style="display: none;">
+                            <div class="st-popover-header">
+                                <span>自动压缩阈值</span>
+                                <strong id="st_popover_interval_val" class="text-primary">${settings.autoTriggerInterval} 轮</strong>
+                            </div>
+                            <input type="range" id="st_compressor_interval" min="5" max="30" step="1" value="${settings.autoTriggerInterval}" />
+                        </div>
                     </div>
                 </div>
 
-                <!-- 紧凑圆形图标栏位组 (Circular Icon Dock) -->
-                <div class="st-dock-group-container">
-                    <div class="st-dock-icons-row">
-                        <!-- 1. 保留轮数微调 (点击弹出拖动条) -->
-                        <div class="st-dock-item-wrapper" id="st_dock_item_keep_rounds">
-                            <button type="button" class="st-dock-btn" id="st_dock_btn_keep_rounds">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span class="st-dock-badge" id="st_dock_keep_rounds_badge">${settings.keepRounds}</span>
-                            </button>
-                            <span class="st-dock-label">保留轮数</span>
+                <!-- 阶段 2：全屏展开内容（原仪表被完全压缩隐藏，新内容丝滑升起占据全屏） -->
+                <div id="st-card-view-expanded" class="st-card-view-pane" style="display: none;">
+                    <div class="st-fullscreen-tab-bar">
+                        <button class="st-fullscreen-tab-btn active" data-tab="result">提炼产物</button>
+                        <button class="st-fullscreen-tab-btn" data-tab="prompt">提示词模板</button>
+                    </div>
+
+                    <div class="st-fullscreen-body-content">
+                        <!-- 提炼产物：纯粹贴合在文本框顶部的压线Tab标签 -->
+                        <div id="st-full-pane-result" class="st-full-pane active">
+                            <div class="st-attached-tabs-row">
+                                <button type="button" class="st-attached-tab active" data-subtab="char">
+                                    角色状态
+                                </button>
+                                <button type="button" class="st-attached-tab" data-subtab="story">
+                                    剧情提要
+                                </button>
+                            </div>
+                            <div class="st-attached-editor-container">
+                                <div id="st-sub-pane-char" class="st-sub-pane active">
+                                    <textarea id="st_drawer_char_state" class="st-attached-textarea" placeholder="暂无角色状态数据..."></textarea>
+                                </div>
+                                <div id="st-sub-pane-story" class="st-sub-pane">
+                                    <textarea id="st_drawer_story_summary" class="st-attached-textarea" placeholder="暂无剧情提要数据..."></textarea>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- 2. 拦截截断 (点击切换开关) -->
-                        <div class="st-dock-item-wrapper" id="st_dock_item_enabled">
-                            <button type="button" class="st-dock-btn ${settings.enabled ? 'active' : ''}" id="st_dock_btn_enabled">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                </svg>
-                            </button>
-                            <span class="st-dock-label">拦截截断</span>
-                        </div>
-
-                        <!-- 3. 自动压缩 (点击切换开关，双击或长按/展开调整阈值) -->
-                        <div class="st-dock-item-wrapper" id="st_dock_item_auto">
-                            <button type="button" class="st-dock-btn ${settings.autoTrigger ? 'active' : ''}" id="st_dock_btn_auto">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                                </svg>
-                            </button>
-                            <span class="st-dock-label">自动压缩</span>
-                        </div>
-
-                        <!-- 4. 打开窗口 (点击打开大配置弹窗) -->
-                        <div class="st-dock-item-wrapper" id="st_dock_item_modal">
-                            <button type="button" class="st-dock-btn" id="st_dock_btn_modal">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                                </svg>
-                            </button>
-                            <span class="st-dock-label">打开窗口</span>
+                        <!-- 提示词模板 -->
+                        <div id="st-full-pane-prompt" class="st-full-pane">
+                            <div class="st-full-prompt-header">
+                                <span class="st-full-group-label tag-green">系统压缩提示词</span>
+                                <button id="st_btn_drawer_restore_prompt" class="st-btn-outline-danger">恢复默认</button>
+                            </div>
+                            <textarea id="st_drawer_compress_prompt" class="st-full-textarea font-mono" rows="14" placeholder="加载中..."></textarea>
                         </div>
                     </div>
 
-                    <!-- 容器内滑块调节区（安全内嵌在卡片中，永不被卡片边框遮挡或裁切） -->
-                    <div class="st-dock-inline-slider-panel" id="st_panel_keep_rounds" style="display: none;">
-                        <div class="st-popover-header">
-                            <span>保留轮数调节</span>
-                            <strong id="st_popover_keep_val" class="text-primary">${settings.keepRounds} 轮</strong>
+                    <div class="st-fullscreen-bottom-bar">
+                        <span class="st-full-status-tokens">产物: <strong id="st_drawer_tokens_val" class="text-primary">0 Tokens</strong></span>
+                        <div class="st-full-actions">
+                            <button id="st_btn_drawer_save_all" class="st-btn-save-full">保存生效</button>
                         </div>
-                        <input type="range" id="st_compressor_keep_rounds" min="3" max="30" step="1" value="${settings.keepRounds}" />
-                    </div>
-
-                    <div class="st-dock-inline-slider-panel" id="st_panel_auto_interval" style="display: none;">
-                        <div class="st-popover-header">
-                            <span>自动压缩阈值</span>
-                            <strong id="st_popover_interval_val" class="text-primary">${settings.autoTriggerInterval} 轮</strong>
-                        </div>
-                        <input type="range" id="st_compressor_interval" min="5" max="30" step="1" value="${settings.autoTriggerInterval}" />
                     </div>
                 </div>
             </div>
-        </div>
         </div>
 
         <!-- 独立顶层全景大弹窗：与浮球绝对平级，彻底消除父级 transform 对 position:fixed 的致命物理扭曲 -->
@@ -276,6 +330,10 @@ export const CompressorUI = {
 
         // 统一直接挂载到 html 根节点，彻底脱离 body 的 transform 变换与负向裁剪影响
         const rootContainer = document.documentElement || document.body;
+        // 关键：确保 html 根节点具备真实物理视口高度，使移动端 bottom: 0 能完美贴合屏幕物理底边
+        if (document.documentElement) {
+            document.documentElement.style.minHeight = '100vh';
+        }
         $('#st-compressor-floating-wrapper, #st-compressor-modal-overlay, #st-mobile-drawer-backdrop').remove();
         $(rootContainer).append(html);
         this.updateDialArc(settings.keepRounds);
@@ -441,10 +499,68 @@ export const CompressorUI = {
             }
         });
 
-        // 4.4 打开窗口按键交互 (圆形图标栏与原有按键均支持)
+        // 4.4 打开窗口 / 展开窗口按键交互
         $('#st_dock_btn_modal, #st_btn_open_detail_modal').on('click', () => {
             $('#st_panel_keep_rounds, #st_panel_auto_interval').hide();
-            self.openLargeModal();
+            // 移动端：直接原位全屏展开，隐藏原仪表，展示完整提炼产物与提示词面板
+            if (window.innerWidth <= 640) {
+                self.expandToFullscreenDrawer();
+            } else {
+                self.openLargeModal();
+            }
+        });
+
+        // 移动端全屏返回抽屉按键
+        $('#st_btn_mobile_back_to_dock').on('click', () => {
+            self.collapseFromFullscreenDrawer();
+        });
+
+        // 移动端全屏内部主选项卡切换
+        $('.st-fullscreen-tab-btn').on('click', function () {
+            const targetTab = $(this).data('tab');
+            $('.st-fullscreen-tab-btn').removeClass('active');
+            $(this).addClass('active');
+
+            $('.st-full-pane').removeClass('active');
+            $(`#st-full-pane-${targetTab}`).addClass('active');
+        });
+
+        // 移动端提炼产物贴合标签切换 (角色状态 / 剧情提要)
+        $('.st-attached-tab').on('click', function () {
+            const subtab = $(this).data('subtab');
+            $('.st-attached-tab').removeClass('active');
+            $(this).addClass('active');
+
+            $('.st-sub-pane').removeClass('active');
+            $(`#st-sub-pane-${subtab}`).addClass('active');
+        });
+
+        // 移动端全屏内恢复提示词
+        $('#st_btn_drawer_restore_prompt').on('click', () => {
+            const defaultPrompt = ContextCompressor.getDefaultPrompt();
+            $('#st_drawer_compress_prompt').val(defaultPrompt);
+            toastr.info('已还原默认压缩提示词模板（点击保存后生效）。', '上下文压缩');
+        });
+
+        // 移动端全屏内保存
+        $('#st_btn_drawer_save_all').on('click', () => {
+            const charState = $('#st_drawer_char_state').val();
+            const storySummary = $('#st_drawer_story_summary').val();
+            const customPrompt = $('#st_drawer_compress_prompt').val();
+
+            settings.customPrompt = customPrompt;
+            CompressorState.saveSettings();
+
+            const tokens = ContextCompressor.estimateTokenCount(charState + '\n' + storySummary);
+            CompressorState.saveSessionCompressionData({
+                characterState: charState,
+                storySummary: storySummary,
+                compressedTokens: tokens
+            });
+
+            toastr.success('已保存配置与上下文成果！', '上下文压缩');
+            self.renderSessionPreview();
+            self.collapseFromFullscreenDrawer();
         });
 
         // 巨大球形按键：立即执行压缩 (带 token 数值增长进度效果)
@@ -512,7 +628,46 @@ export const CompressorUI = {
     },
 
     /**
-     * 打开全景大弹窗
+     * 移动端展开窗口升为全屏 (原仪表向内压缩隐藏，新内容丝滑升起占据全屏)
+     */
+    expandToFullscreenDrawer() {
+        const settings = CompressorState.getSettings();
+        const sessionData = CompressorState.getSessionCompressionData() || {};
+
+        $('#st_drawer_char_state').val(sessionData.characterState || '');
+        $('#st_drawer_story_summary').val(sessionData.storySummary || '');
+        $('#st_drawer_compress_prompt').val(settings.customPrompt || ContextCompressor.getDefaultPrompt());
+
+        const tokenCount = sessionData.compressedTokens || ContextCompressor.estimateTokenCount((sessionData.characterState || '') + '\n' + (sessionData.storySummary || ''));
+        $('#st_drawer_tokens_val').text(`${tokenCount} Tokens`);
+
+        const card = $('#st-compressor-card');
+        card.addClass('open fullscreen-mode');
+        $('#st-compressor-floating-wrapper').addClass('locked open-drawer');
+        $('#st-mobile-drawer-backdrop').addClass('active');
+        $('#st_card_header_title').text('压缩管理');
+
+        // 视图切换动画：原仪表压缩淡出，全屏新内容淡入
+        $('#st-card-view-simple').fadeOut(180, () => {
+            $('#st-card-view-expanded').fadeIn(220);
+        });
+    },
+
+    /**
+     * 从全屏收拢回底部简易抽屉
+     */
+    collapseFromFullscreenDrawer() {
+        const card = $('#st-compressor-card');
+        card.removeClass('fullscreen-mode');
+        $('#st_card_header_title').text('上下文压缩');
+
+        $('#st-card-view-expanded').fadeOut(180, () => {
+            $('#st-card-view-simple').fadeIn(220);
+        });
+    },
+
+    /**
+     * 打开全景大弹窗 (桌面端使用)
      */
     openLargeModal() {
         const settings = CompressorState.getSettings();
@@ -555,8 +710,8 @@ export const CompressorUI = {
         }
 
         const ballRect = ball[0].getBoundingClientRect();
-        const cardWidth = 320;
-        const cardHeight = 440;
+        const cardWidth = card[0].offsetWidth || 320;
+        const cardHeight = card[0].offsetHeight || 405;
 
         const hasLeftSpace = ballRect.left >= cardWidth;
         const hasTopSpace = ballRect.top >= cardHeight;
@@ -565,18 +720,18 @@ export const CompressorUI = {
         let leftPos = 0;
         let topPos = 0;
 
-        // 水平定位
+        // 水平定位：右侧对齐浮球右边界
         if (hasLeftSpace) {
             leftPos = ballRect.right - cardWidth;
         } else {
             leftPos = ballRect.left;
         }
 
-        // 垂直定位
+        // 垂直定位：直接依据卡片实际高度紧贴浮球，精准贴合 8px 呼吸间距
         if (!hasTopSpace && hasBottomSpace) {
-            topPos = ballRect.bottom + 10;
+            topPos = ballRect.bottom + 8;
         } else {
-            topPos = ballRect.top - cardHeight - 10;
+            topPos = ballRect.top - cardHeight - 8;
         }
 
         // 约束在屏幕安全边界内
@@ -731,6 +886,8 @@ export const CompressorUI = {
             wrapper.addClass('locked open-drawer'); // 锁定悬浮球并在抽屉展开时添加渐隐类
             this.renderSessionPreview();
         } else {
+            // 收起时重置全屏状态为普通抽屉
+            this.collapseFromFullscreenDrawer();
             card.removeClass('open');
             ball.removeClass('active');
             backdrop.removeClass('active');
