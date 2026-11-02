@@ -18,8 +18,36 @@ export const CompressorUI = {
      * 初始化 UI 容器与悬浮球
      */
     initUI() {
+        this.setupMobileViewportTracker();
         this.injectFloatingWidget();
         this.bindEvents();
+    },
+
+    /**
+     * 移动端高精度动态视口追踪 (彻底解决安卓 Chrome / Firefox 动态地址栏与底部导航栏导致的 fixed 底部下陷与遮挡)
+     */
+    setupMobileViewportTracker() {
+        // 解除 html 根节点上的 perspective / transform 污染，恢复真正的浏览器顶级 Viewport 视口
+        try {
+            document.documentElement.style.setProperty('perspective', 'none', 'important');
+            document.documentElement.style.setProperty('transform', 'none', 'important');
+        } catch (e) {}
+
+        const updateViewportMetrics = () => {
+            let realHeight = window.innerHeight;
+            if (window.visualViewport) {
+                realHeight = Math.round(window.visualViewport.height);
+            }
+            document.documentElement.style.setProperty('--st-actual-vh', `${realHeight}px`);
+        };
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewportMetrics);
+            window.visualViewport.addEventListener('scroll', updateViewportMetrics);
+        }
+        window.addEventListener('resize', updateViewportMetrics);
+        window.addEventListener('orientationchange', updateViewportMetrics);
+        updateViewportMetrics();
     },
 
     /**
@@ -330,10 +358,7 @@ export const CompressorUI = {
 
         // 统一直接挂载到 html 根节点，彻底脱离 body 的 transform 变换与负向裁剪影响
         const rootContainer = document.documentElement || document.body;
-        // 关键：确保 html 根节点具备真实物理视口高度，使移动端 bottom: 0 能完美贴合屏幕物理底边
-        if (document.documentElement) {
-            document.documentElement.style.minHeight = '100vh';
-        }
+        this.setupMobileViewportTracker();
         $('#st-compressor-floating-wrapper, #st-compressor-modal-overlay, #st-mobile-drawer-backdrop').remove();
         $(rootContainer).append(html);
         this.updateDialArc(settings.keepRounds);
@@ -711,40 +736,45 @@ export const CompressorUI = {
 
         const ballRect = ball[0].getBoundingClientRect();
         const cardWidth = card[0].offsetWidth || 320;
-        const cardHeight = card[0].offsetHeight || 405;
+        const cardHeight = card[0].offsetHeight || 420;
+        const marginGap = 14; // PC端展开窗口与浮球之间的优雅微边距
 
         const hasLeftSpace = ballRect.left >= cardWidth;
-        const hasTopSpace = ballRect.top >= cardHeight;
-        const hasBottomSpace = (window.innerHeight - ballRect.bottom) >= cardHeight;
+        const hasTopSpace = ballRect.top >= (cardHeight + marginGap + 12);
+        const hasBottomSpace = (window.innerHeight - ballRect.bottom) >= (cardHeight + marginGap + 12);
 
         let leftPos = 0;
-        let topPos = 0;
-
-        // 水平定位：右侧对齐浮球右边界
+        // 水平定位：右侧吸附时右边界对齐浮球右边界，左侧吸附时对齐左边界
         if (hasLeftSpace) {
             leftPos = ballRect.right - cardWidth;
         } else {
             leftPos = ballRect.left;
         }
-
-        // 垂直定位：直接依据卡片实际高度紧贴浮球，精准贴合 8px 呼吸间距
-        if (!hasTopSpace && hasBottomSpace) {
-            topPos = ballRect.bottom + 8;
-        } else {
-            topPos = ballRect.top - cardHeight - 8;
-        }
-
-        // 约束在屏幕安全边界内
+        // 约束在水平安全视口内
         leftPos = Math.max(12, Math.min(window.innerWidth - cardWidth - 12, leftPos));
-        topPos = Math.max(12, Math.min(window.innerHeight - cardHeight - 12, topPos));
 
-        card.css({
-            position: 'fixed',
-            left: `${leftPos}px`,
-            top: `${topPos}px`,
-            right: 'auto',
-            bottom: 'auto'
-        });
+        // 垂直定位：优先向上展开，直接采用 bottom 定位，彻底杜绝浮球压住卡片下端！
+        if (!hasTopSpace && hasBottomSpace) {
+            // 向下展开：卡片顶部与浮球底边保持 marginGap 间隙，向下生长
+            const topPos = ballRect.bottom + marginGap;
+            card.css({
+                position: 'fixed',
+                left: `${leftPos}px`,
+                top: `${topPos}px`,
+                bottom: 'auto',
+                right: 'auto'
+            });
+        } else {
+            // 向上展开：卡片底边与浮球顶边严格保持 marginGap 间隙，向上生长，永不压合
+            const bottomPos = window.innerHeight - ballRect.top + marginGap;
+            card.css({
+                position: 'fixed',
+                left: `${leftPos}px`,
+                bottom: `${bottomPos}px`,
+                top: 'auto',
+                right: 'auto'
+            });
+        }
     },
 
     /**
@@ -885,6 +915,10 @@ export const CompressorUI = {
             backdrop.addClass('active');
             wrapper.addClass('locked open-drawer'); // 锁定悬浮球并在抽屉展开时添加渐隐类
             this.renderSessionPreview();
+            // 在卡片渲染显示后进行微边距二次精准核准，确保万无一失
+            requestAnimationFrame(() => {
+                this.adjustCardOrientation();
+            });
         } else {
             // 收起时重置全屏状态为普通抽屉
             this.collapseFromFullscreenDrawer();
