@@ -29,9 +29,10 @@ export class CompressorState {
             ctx.extensionSettings[MODULE_KEY] = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         } else {
             ctx.extensionSettings[MODULE_KEY] = Object.assign({}, DEFAULT_SETTINGS, ctx.extensionSettings[MODULE_KEY]);
-            // 确保如果之前的 prompt 还是旧版简陋提示词，或者为空，则自动同步为新版提示词
+            // 自动无缝升级迁移：若用户本地仍为未携带防42tk过滤的旧版提示词，自动升级为小猫之神文学档案学防封提示词
             const currentPrompt = ctx.extensionSettings[MODULE_KEY].customPrompt;
-            if (!currentPrompt || currentPrompt.includes('请对提供的对话历史进行高度精炼的结构化提炼与剧情压缩')) {
+            if (!currentPrompt || !currentPrompt.includes('[SYSTEM MANDATE: OBJECTIVE FICTIONAL ARCHIVE ENGINE]')) {
+                console.log('[Context Compressor] 检测到旧版无防护提示词，已自动无缝平滑升级为虚构文学档案防封提示词！');
                 ctx.extensionSettings[MODULE_KEY].customPrompt = ContextCompressor.getDefaultPrompt();
                 this.saveSettings();
             }

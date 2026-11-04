@@ -92,24 +92,24 @@ export async function executeContextCompression(isManual = false, targetEndIndex
         const modeLabel = isFullMode ? '【全量模式】' : '【增量模式】';
         toastr.info(`${modeLabel} 正在压缩第 ${effectiveStartIndex + 1} 至 ${endIndex} 条对白...`, '上下文压缩', { timeOut: 3000 });
 
-        // 构建输入
+        // 构建输入（全面采用中立客观的文献编纂标签）
         let compressionInput = '';
         if (!isFullMode) {
             // 增量模式：附带历史基准
             if (sessionData.storySummary) {
-                compressionInput += `【此前累积的历史剧情基准】：\n${sessionData.storySummary}\n\n`;
+                compressionInput += `【前置已确认的剧情脉络基准 (Prior Narrative Baseline)】：\n${sessionData.storySummary}\n\n`;
             }
             if (sessionData.characterState) {
-                compressionInput += `【此前累积的角色状态基准】：\n${sessionData.characterState}\n\n`;
+                compressionInput += `【前置已确认的角色状态基准 (Prior Character State Baseline)】：\n${sessionData.characterState}\n\n`;
             }
-            compressionInput += `【本次待归纳进剧情提要的历史对白（第 ${startIndex + 1} 至 ${endIndex} 条）】：\n${formattedHistoryChat}\n\n`;
+            compressionInput += `【本次待归纳进剧情提要的情节片段 (Chapter Slice: 第 ${startIndex + 1} 至 ${endIndex} 条)】：\n${formattedHistoryChat}\n\n`;
         } else {
-            // 全量模式：干净直接的全量对白输入，杜绝任何历史冗余标签污染
-            compressionInput += `【完整历史对话记录（第 1 至 ${endIndex} 条）】：\n${formattedHistoryChat}\n\n`;
+            // 全量模式：干净直接的全量草稿输入
+            compressionInput += `【完整文学对白演进记录 (Complete Narrative History: 第 1 至 ${endIndex} 条)】：\n${formattedHistoryChat}\n\n`;
         }
 
         if (formattedRecentChat.trim()) {
-            compressionInput += `【最新活跃对话（供参考最新角色心境与状态）】：\n${formattedRecentChat}\n\n`;
+            compressionInput += `【当前章节活跃场景态势 (Current Scene Reference)】：\n${formattedRecentChat}\n\n`;
         }
 
         const result = await ContextCompressor.compress(compressionInput, {
